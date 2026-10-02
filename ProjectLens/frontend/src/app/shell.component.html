@@ -1,0 +1,38 @@
+<a class="skip-link" href="#main-content">Skip to content</a>
+@if (menuOpen()) {
+  <button class="mobile-scrim" aria-label="Close navigation" (click)="menuOpen.set(false)"></button>
+}
+<div class="studio-shell" [class.navigation-expanded]="navigationExpanded()">
+  <header class="topbar">
+    <a class="brand" [routerLink]="auth.home"><span class="brand-mark"><pl-icon name="lens" [size]="25" /></span><span>ProjectLens<span class="brand-dot">/</span></span></a>
+    <div class="workspace-breadcrumb">
+      <span class="live-dot"></span><span class="topbar-label">{{ auth.user?.role === 'TRAINER' ? 'Trainer studio' : auth.user?.podName }}</span>
+      <span class="topbar-divider">/</span><span class="workspace-location">{{ pageName }}</span>
+    </div>
+    <div class="workspace-tools">
+      <button class="icon-button mobile-menu" aria-label="Open navigation" aria-controls="workspace-navigation" [attr.aria-expanded]="menuOpen()" (click)="menuOpen.set(true)"><pl-icon name="menu" /></button>
+      <a class="notification-button" routerLink="/notifications" aria-label="View notifications"><pl-icon name="bell" />@if (unread()) { <span class="notification-dot"></span> }</a>
+      <a class="header-avatar" routerLink="/profile" [attr.aria-label]="'Profile for ' + auth.user?.name">{{ initials }}</a>
+      <button class="icon-button" title="Sign out" aria-label="Sign out" (click)="auth.logout()"><pl-icon name="logout" [size]="18" /></button>
+    </div>
+  </header>
+  <aside id="workspace-navigation" class="sidebar" [class.open]="menuOpen()" (keydown.escape)="menuOpen.set(false)">
+    <button class="dock-toggle" (click)="navigationExpanded.set(!navigationExpanded())" [attr.aria-expanded]="navigationExpanded()" aria-label="Expand or collapse workspace navigation"><pl-icon [name]="navigationExpanded() ? 'back' : 'menu'" [size]="19" /><span>Workspace</span></button>
+    <nav aria-label="Main navigation">
+      @for (item of navigation; track item.path) {
+        <a [routerLink]="item.path" routerLinkActive="active" ariaCurrentWhenActive="page" (click)="menuOpen.set(false)" [attr.title]="item.name">
+          <span class="nav-symbol"><pl-icon [name]="item.icon" [size]="21" /></span><span class="nav-label">{{ item.name }}</span>
+          @if (item.name === 'Notifications' && unread()) { <span class="nav-count">{{ unread() }}</span> }
+        </a>
+      }
+    </nav>
+    <div class="sidebar-bottom">
+      <a class="cohort-beacon" routerLink="/criteria" title="Active cohort criteria"><span class="beacon-orbit"><pl-icon name="spark" [size]="19" /></span><span>Active cohort<small>AI-enabled enterprise applications</small></span></a>
+      <a class="sidebar-user" routerLink="/profile" (click)="menuOpen.set(false)"><span class="avatar">{{ initials }}</span><span><strong>{{ auth.user?.name }}</strong><small>{{ roleName }}</small></span></a>
+    </div>
+  </aside>
+  <div class="app-workspace">
+    <main id="main-content" class="main-content" tabindex="-1"><router-outlet /></main>
+    <footer class="app-footer"><span>ProjectLens <span class="footer-separator">/</span> Ideas with direction.</span><span>{{ roleName }} workspace<span class="live-dot"></span></span></footer>
+  </div>
+</div>

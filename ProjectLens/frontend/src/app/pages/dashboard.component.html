@@ -1,0 +1,331 @@
+<div class="page-heading studio-heading">
+  <div><div class="eyebrow">{{ trainer ? 'THE COHORT STUDIO' : auth.user?.podName }}</div><h1>{{ title }}<span class="title-period">.</span></h1><p>{{ subtitle }}</p></div>
+  <div class="heading-actions"><button class="btn btn-secondary" (click)="load()" aria-label="Refresh dashboard"><pl-icon name="refresh" [size]="16" />Refresh</button>
+    @if (!trainer && auth.user?.role === 'POD_LEAD' && !loading() && !error() && !data()?.submissions?.length) {
+      <a routerLink="/pod/new" class="btn btn-primary"><pl-icon name="plus" [size]="17" />Submit an idea</a>
+    }
+  </div>
+</div>
+@if (loading()) { <pl-skeleton /> }
+@else if (error()) {
+  <div class="panel empty-state" role="alert"><span class="empty-icon"><pl-icon name="error" /></span><h2>We couldn’t load your workspace</h2><p>{{ error() }}</p><button class="btn btn-primary" (click)="load()">Try again</button></div>
+}
+@if (!loading() && !error() && data(); as d) {
+  @if (mode === 'dashboard' && trainer) {
+    <div class="studio-board">
+      <section class="review-queue focus-desk" plReveal>
+        <div class="desk-caption"><span class="eyebrow">01 / YOUR FOCUS</span><pl-icon name="reviews" [size]="23" /></div>
+        <div class="focus-count"><pl-metric [value]="d.stats.pendingReview" /><span>ideas waiting<br />for your perspective</span></div>
+        <div class="queue-items">
+          @for (s of queue(); track s.id; let i = $index) {
+            <a [routerLink]="['/reviews', s.id]" class="queue-item" [style.--order]="i"><span class="pod-monogram">{{ s.podName.replace('Pod ', '').slice(0, 2).toUpperCase() }}</span><div><strong>{{ s.projectTitle }}</strong><span>{{ s.podName }} · {{ s.alignmentScore }}% alignment</span></div><pl-icon name="arrow" [size]="20" /></a>
+          } @empty {
+            <div class="compact-empty"><pl-icon name="success" [size]="28" /><div><strong>Your review desk is clear</strong><p>New qualifying ideas will appear here.</p></div></div>
+          }
+        </div>
+        <a routerLink="/trainer/reviews" class="desk-action">Open review desk <span><pl-icon name="arrow" [size]="20" /></span></a>
+      </section>
+      <section class="alignment-overview alignment-stage" plReveal>
+        <div class="desk-caption"><span class="eyebrow">02 / COHORT ALIGNMENT</span><span class="stage-label">LIVE OVERVIEW</span></div>
+        <div class="alignment-orbit"><pl-score [value]="d.stats.averageAlignmentScore" [threshold]="d.stats.reviewThreshold" /><div class="orbit-caption"><h2>Ideas finding direction.</h2><p>Cohort average across {{ d.stats.totalSubmissions }} qualifying ideas</p></div></div>
+        <div class="score-distribution" aria-label="Alignment score distribution">
+          @for (b of distribution(); track b.label) {
+            <div><strong><pl-metric [value]="b.count" /></strong><div><i [style.transform]="'scaleY(' + (d.stats.totalSubmissions ? b.count / d.stats.totalSubmissions : 0) + ')' "></i></div><span>{{ b.label }}</span></div>
+          }
+        </div>
+        <div class="stage-footer"><span>{{ d.stats.reviewThreshold }}% review threshold</span><span>Alignment distribution<pl-icon name="chart" [size]="16" /></span></div>
+      </section>
+      <section class="decision-overview decision-ledger" plReveal>
+        <div class="desk-caption"><span class="eyebrow">03 / DECISIONS</span><pl-icon name="check" [size]="21" /></div>
+        <div class="decision-total"><pl-metric [value]="d.stats.approved" /><div><h2>Moving forward.</h2><span>Approved ideas</span></div></div>
+        <div class="status-legend">
+          @for (s of statusSegments(); track s.label) {
+            <div><i [attr.data-segment]="s.label"></i><span>{{ s.label }}</span><strong><pl-metric [value]="s.count" /></strong><div class="ledger-track"><span [attr.data-segment]="s.label" [style.width.%]="d.stats.totalSubmissions ? (s.count / d.stats.totalSubmissions) * 100 : 0"></span></div></div>
+          }
+        </div>
+        <a routerLink="/trainer/submissions" class="text-link">Explore every proposal<pl-icon name="arrow" [size]="17" /></a>
+      </section>
+    </div>
+    <section class="cohort-hero cohort-ribbon" plReveal><span class="live-dot"></span><span>ACTIVE COHORT</span><h2>AI-enabled enterprise applications</h2><a routerLink="/criteria">Explore the criteria<pl-icon name="arrow" [size]="17" /></a></section>
+    <div class="cohort-stream-layout">
+      <section class="cohort-stream" plReveal>
+        <div class="stream-heading"><div><div class="eyebrow">THE PROJECT STREAM</div><h2>From ideas to outcomes.</h2></div><a routerLink="/trainer/submissions" class="text-link">All submissions<pl-icon name="arrow" [size]="17" /></a></div>
+        @for (s of d.submissions.slice(0, 5); track s.id; let i = $index) {
+          <a class="stream-project" [routerLink]="['/reviews', s.id]" [style.--order]="i"><span class="stream-index">{{ (i + 1).toString().padStart(2, '0') }}</span><div><span class="stream-pod">{{ s.podName }} <span> / {{ s.submissionDate | date:'d MMM' }}</span></span><h3>{{ s.projectTitle }}</h3><div class="stream-reveal"><pl-technology-chips [items]="s.technologyStack" /></div></div><div class="stream-result"><strong>{{ s.alignmentScore }}<small>%</small></strong><span class="badge" [attr.data-status]="s.status">{{ label(s.status) }}</span></div><pl-icon name="arrow" [size]="23" /></a>
+        } @empty { <div class="compact-empty"><p>Qualifying ideas will appear here as pods submit.</p></div> }
+      </section>
+      <section class="overlap-alerts overlap-studio" plReveal>
+        <div class="desk-caption"><span class="eyebrow">CONNECTIONS TO EXPLORE</span><pl-icon name="flag" [size]="20" /></div><h2>Similar words. Distinct ideas?</h2><p>Compare the scope behind each overlap signal.</p>
+        @for (s of alerts(); track s.id) {
+          <a class="overlap-alert" [routerLink]="['/reviews', s.id]"><div class="connection-visual" aria-hidden="true"><span>{{ s.podName.replace('Pod ', '').slice(0, 2).toUpperCase() }}</span><i></i><span><pl-icon name="submissions" [size]="18" /></span></div><div><strong>{{ s.projectTitle }}</strong><span>{{ s.evaluation.similarity | number:'1.0-1' }}% similarity · {{ label(s.overlapLevel) }} overlap</span></div><pl-icon name="arrow" [size]="18" /></a>
+        } @empty { <div class="compact-empty"><pl-icon name="check" /><div><strong>No overlap flags</strong><p>Ideas are distinct across pods.</p></div></div> }
+      </section>
+    </div>
+  }
+  @if (!trainer && mode === 'dashboard') {
+    @if (auth.user?.role === 'POD_MEMBER') { <div class="info-banner"><pl-icon name="lock" [size]="18" />You have read-only access to your pod’s idea, evaluation, and trainer feedback.</div> }
+    @for (s of d.submissions; track s.id) {
+      <section class="pod-spotlight pod-stage" plReveal>
+        <div class="pod-project"><div class="eyebrow">YOUR IDEA / IN FOCUS</div><h2>{{ s.projectTitle }}</h2><p>{{ s.problemStatement }}</p><pl-technology-chips [items]="s.technologyStack" /><div class="spotlight-status"><span class="badge" [attr.data-status]="s.status">{{ label(s.status) }}</span><span>{{ s.submissionDate | date:'d MMM yyyy, h:mm a' }}</span></div></div>
+        <div class="spotlight-actions"><span class="eyebrow">COHORT ALIGNMENT</span><pl-score [value]="s.alignmentScore" [threshold]="d.stats.reviewThreshold" /><small>{{ s.alignmentScore >= d.stats.reviewThreshold ? 'Qualified for trainer review' : 'Reach ' + d.stats.reviewThreshold + '% to qualify' }}</small><a [routerLink]="['/submissions', s.id]" class="btn btn-primary">View evaluation<pl-icon name="arrow" [size]="18" /></a>@if (auth.user?.role === 'POD_LEAD' && canRevise(s)) { <a [routerLink]="['/pod/submissions', s.id, 'edit']" class="btn btn-secondary"><pl-icon name="edit" [size]="16" />Revise &amp; resubmit</a> }</div>
+      </section>
+      <div class="pod-journey" plReveal><div class="complete"><span>01</span><div><strong>Idea submitted</strong><small>Your proposal is saved</small></div><pl-icon name="check" [size]="18" /></div><div class="complete"><span>02</span><div><strong>Alignment evaluated</strong><small>{{ s.evaluation.matchedCriteria.length }} criteria matched</small></div><pl-icon name="check" [size]="18" /></div><div [class.complete]="s.decisions.length > 0"><span>03</span><div><strong>Trainer decision</strong><small>{{ s.decisions.length ? label(s.decisions[0].decision) : s.status === 'NEEDS_IMPROVEMENT' ? 'Improve alignment to qualify' : 'Awaiting trainer review' }}</small></div></div></div>
+      <div class="pod-next-layout" plReveal><section class="pod-next"><span class="eyebrow">YOUR NEXT MOVE</span><h2>{{ canRevise(s) ? 'Make the idea stronger.' : s.status === 'APPROVED' ? 'Take your idea forward.' : 'Your idea is in review.' }}</h2><p>{{ canRevise(s) ? 'Use the evaluation evidence to strengthen your proposal and submit it again.' : s.status === 'APPROVED' ? 'Your trainer has approved this proposal. Keep the evaluation and feedback close as you build.' : 'Your trainer will review the alignment, project scope, and overlap evidence.' }}</p><a [routerLink]="['/submissions', s.id]" class="text-link">Explore the evidence<pl-icon name="arrow" [size]="17" /></a></section><section class="pod-feedback"><span class="eyebrow">TRAINER PERSPECTIVE</span>@if (s.decisions.length) { <blockquote>{{ s.decisions[0].comments }}</blockquote><span>{{ s.decisions[0].trainerName }} · {{ s.decisions[0].decidedAt | date:'d MMM' }}</span> } @else { <h3>Feedback starts a conversation.</h3><p>Trainer comments will appear here after your qualifying idea is reviewed.</p> }</section></div>
+    } @empty { <ng-container *ngTemplateOutlet="projectDirectory" /> }
+  }
+  @if (mode !== 'dashboard') {
+    <div class="directory-layout" [class.has-preview]="!!preview()"><div><ng-container *ngTemplateOutlet="projectDirectory" /></div>
+      @if (preview(); as s) {
+        <aside class="project-preview" aria-label="Submission preview" tabindex="-1" plReveal><div class="desk-caption"><span class="eyebrow">PROJECT PREVIEW</span><pl-icon name="eye" [size]="20" /></div><span class="preview-pod">{{ s.podName }}</span><h2>{{ s.projectTitle }}</h2><span class="badge" [attr.data-status]="s.status">{{ label(s.status) }}</span><div class="preview-score"><pl-score [value]="s.alignmentScore" [threshold]="d.stats.reviewThreshold" /><span>cohort<br />alignment</span></div><p>{{ s.problemStatement }}</p><pl-technology-chips [items]="s.technologyStack" /><div class="preview-overlap"><pl-icon name="flag" [size]="16" /><span>{{ label(s.overlapLevel) }} overlap</span><strong>{{ s.evaluation.similarity | number:'1.0-1' }}%</strong></div><a [routerLink]="[trainer ? '/reviews' : '/submissions', s.id]" class="btn btn-primary">Open evaluation<pl-icon name="arrow" [size]="18" /></a></aside>
+      }
+    </div>
+  }
+  <ng-template #projectDirectory>
+  <section class="submission-panel panel">
+    <div class="section-heading">
+      <div>
+        <div class="eyebrow">
+          {{ mode === "dashboard" ? "LATEST ACTIVITY" : "PROJECT DIRECTORY" }}
+        </div>
+        <h2>
+          {{
+            mode === "reviews"
+              ? "Review queue"
+              : trainer
+                ? mode === "dashboard"
+                  ? "Recent submissions"
+                  : "Project submissions"
+                : "Your submission"
+          }}
+        </h2>
+        <p>
+          {{
+            trainer
+              ? "Explore alignment, scope, and the latest trainer decisions."
+              : "Your idea, its progress, and the next step."
+          }}
+        </p>
+      </div>
+      <span class="count-pill"
+        >{{ filtered().length }}
+        {{ filtered().length === 1 ? "submission" : "submissions" }}</span
+      >
+    </div>
+    @if (trainer) {
+      <div class="filters">
+        <div class="search-input">
+          <pl-icon name="search" [size]="17" /><input
+            aria-label="Search projects or pods"
+            placeholder="Search projects or pods…"
+            [ngModel]="search()"
+            (ngModelChange)="search.set($event); page.set(1)"
+          />
+        </div>
+        <select
+          aria-label="Filter by pod"
+          [ngModel]="pod()"
+          (ngModelChange)="pod.set($event); page.set(1)"
+        >
+          <option value="">All pods</option>
+          @for (p of podNames(); track p) {
+            <option [value]="p">{{ p }}</option>
+          }</select
+        ><select
+          aria-label="Filter by decision status"
+          [ngModel]="status()"
+          (ngModelChange)="status.set($event); page.set(1)"
+        >
+          <option value="">All decisions</option>
+          <option value="PENDING_REVIEW">Pending review</option>
+          <option value="APPROVED">Approved</option>
+          <option value="NEEDS_REVISION">Needs revision</option>
+          <option value="REJECTED">Rejected</option></select
+        ><select
+          aria-label="Filter by overlap"
+          [ngModel]="overlap()"
+          (ngModelChange)="overlap.set($event); page.set(1)"
+        >
+          <option value="">All overlaps</option>
+          <option value="FLAGGED">Flagged</option>
+          <option value="LOW">Low overlap</option>
+          <option value="MEDIUM">Medium overlap</option>
+          <option value="HIGH">High overlap</option></select
+        ><select
+          aria-label="Minimum alignment score"
+          [ngModel]="minScore()"
+          (ngModelChange)="minScore.set(+$event); page.set(1)"
+        >
+          <option [value]="0">Any score</option>
+          <option [value]="80">80% and above</option>
+          <option [value]="90">90% and above</option>
+          <option [value]="100">100% alignment</option>
+        </select>
+      </div>
+      <div class="list-toolbar">
+        <span
+          >{{ filtered().length }} of {{ d.submissions.length }} qualifying
+          ideas
+          @if (filtersActive()) {
+            <button class="text-button" (click)="resetFilters()">
+              Clear filters
+            </button>
+          }</span
+        ><label
+          ><pl-icon name="sort" [size]="14" />Sort by<select
+            aria-label="Sort submissions"
+            [ngModel]="sort()"
+            (ngModelChange)="sort.set($event); page.set(1)"
+          >
+            <option value="recent">Most recent</option>
+            <option value="score-desc">Score: high to low</option>
+            <option value="score-asc">Score: low to high</option>
+            <option value="pod">Pod name</option>
+            <option value="overlap">Overlap level</option>
+            <option value="status">Decision status</option>
+          </select></label
+        >
+      </div>
+    }
+    @if (filtered().length) {
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Pod / Project</th>
+              <th>Alignment</th>
+              <th>Overlap</th>
+              <th>Decision status</th>
+              <th>Submitted</th>
+              <th><span class="sr-only">Action</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (s of paginated(); track s.id; let i = $index) {
+              <tr [class.preview-selected]="preview()?.id === s.id" [style.--order]="i">
+                <td data-label="Project">
+                  <div class="project-cell">
+                    <span class="pod-monogram">{{
+                      s.podName.replace("Pod ", "").slice(0, 2).toUpperCase()
+                    }}</span>
+                    <div>
+                      <a
+                        [routerLink]="[
+                          trainer ? '/reviews' : '/submissions',
+                          s.id,
+                        ]"
+                        class="project-title"
+                        >{{ s.projectTitle }}</a
+                      ><small
+                        >{{ s.podName
+                        }}<span>
+                          · {{ s.technologyStack.length }} technologies</span
+                        ></small
+                      >
+                    </div>
+                  </div>
+                </td>
+                <td data-label="Alignment">
+                  <div class="table-score">
+                    <strong
+                      >{{ s.alignmentScore | number: "1.0-1"
+                      }}<span>%</span></strong
+                    >
+                    <div class="score-track">
+                      <span [style.width.%]="s.alignmentScore"></span>
+                    </div>
+                  </div>
+                </td>
+                <td data-label="Overlap">
+                  <span class="overlap-label" [class.flagged]="s.overlapFlag"
+                    ><span></span>{{ label(s.overlapLevel) }}</span
+                  >
+                </td>
+                <td data-label="Status">
+                  <span class="badge" [attr.data-status]="s.status">{{
+                    label(s.status)
+                  }}</span>
+                </td>
+                <td data-label="Submitted" class="date-cell">
+                  {{ s.submissionDate | date: "d MMM yyyy"
+                  }}<small>{{ s.submissionDate | date: "h:mm a" }}</small>
+                </td>
+                <td>
+                  <button class="row-action preview-button" (click)="selectPreview(s.id)" [attr.aria-label]="'Preview ' + s.projectTitle" [attr.aria-pressed]="preview()?.id === s.id"><pl-icon name="eye" [size]="17" /></button>
+                  <a
+                    class="row-action"
+                    [routerLink]="[trainer ? '/reviews' : '/submissions', s.id]"
+                    [attr.aria-label]="'Open evaluation for ' + s.projectTitle"
+                    ><pl-icon name="arrow" [size]="17"
+                  /></a>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <div class="table-footer">
+        <span>{{
+          trainer
+            ? "Only qualifying ideas are shown."
+            : "Trainer feedback is visible to all pod members."
+        }}</span>
+        <div class="pagination">
+          <button
+            class="icon-button"
+            aria-label="Previous page"
+            [disabled]="currentPage() === 1"
+            (click)="page.set(currentPage() - 1)"
+          >
+            <pl-icon name="back" [size]="15" /></button
+          ><span>Page {{ currentPage() }} of {{ pageCount() }}</span
+          ><button
+            class="icon-button"
+            aria-label="Next page"
+            [disabled]="currentPage() === pageCount()"
+            (click)="page.set(currentPage() + 1)"
+          >
+            <pl-icon name="arrow" [size]="15" />
+          </button>
+        </div>
+      </div>
+    } @else {
+      <div class="empty-state">
+        <span class="empty-icon"
+          ><pl-icon
+            [name]="filtersActive() ? 'search' : 'submissions'"
+            [size]="25"
+        /></span>
+        <h3>
+          {{
+            filtersActive()
+              ? "No ideas match these filters"
+              : trainer
+                ? "Your review desk is clear"
+                : "Every project starts with an idea"
+          }}
+        </h3>
+        <p>
+          {{
+            filtersActive()
+              ? "Try a different search or clear your filters."
+              : trainer
+                ? "Qualifying submissions will appear here when a pod is ready."
+                : auth.user?.role === "POD_LEAD"
+                  ? "Submit your pod’s idea to see its alignment with the cohort."
+                  : "Your Pod Lead’s submission will appear here with its evaluation."
+          }}
+        </p>
+        @if (filtersActive()) {
+          <button class="btn btn-secondary" (click)="resetFilters()">
+            Clear filters
+          </button>
+        } @else if (!trainer && auth.user?.role === "POD_LEAD") {
+          <a class="btn btn-primary" routerLink="/pod/new"
+            >Submit an idea<pl-icon name="plus" [size]="16"
+          /></a>
+        }
+      </div>
+    }
+  </section>
+  </ng-template>
+}
