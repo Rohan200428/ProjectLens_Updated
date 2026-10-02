@@ -95,8 +95,6 @@ public class GeminiClient {
                                                             json.writeValueAsString(context))))),
                             "generationConfig",
                             Map.of(
-                                    "temperature",
-                                    0.1,
                                     "maxOutputTokens",
                                     4096,
                                     "responseFormat",
